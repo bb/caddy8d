@@ -1,9 +1,10 @@
 # caddy8d
 
 Custom Caddy image for several servers, replacing an older self-built xcaddy
-image. Base variant: Caddy + Mercure + caddy-cbrotli. Extra variants: `souin`, `anycable`. Images are
-rebuilt automatically on every upstream stable release. User-facing docs, tags
-and limitations live in README.md; it is also the Docker Hub description.
+image. Base variant: Caddy + Mercure + caddy-cbrotli. Extra variants: `souin`,
+`anycable`. Images are rebuilt automatically on every upstream stable release.
+User-facing docs, tags and limitations live in README.md; it is also the
+Docker Hub description.
 Sibling project with the same CI approach: github.com/bb/frankenpress.
 
 ## How it works
@@ -62,6 +63,10 @@ that compared a constant string once passed for the wrong reason.
 Never copy Caddyfiles from servers into the repo: they contain real Mercure
 JWT keys. Use `{env.*}` placeholders and test-only keys.
 
+The repository is public: no server names, hostnames, paths, customer or
+app names here, in examples or in commit messages. Keep per-server notes
+outside the repo.
+
 ## Status and plan
 
 Done (2026-10-04): github.com/bb/caddy8d publishes all variants for amd64
@@ -73,13 +78,16 @@ only, so never require arm64 checks), admins not enforced, no reviews;
 repository auto-merge enabled (`gh pr merge --auto` needs it). When adding or
 renaming a variant, update the required checks too.
 
+Rollout recipe for a server: baseline with a check script, validate
+the migrated Caddyfile with the new image in a `--network none` container
+against copies of the bolt DBs (live ones are locked), stop, back up the DBs,
+switch, rerun the check and diff. If the Caddyfile sends Caddy's own log to a
+file, `caddy validate` errors land there, not on stderr.
+
 Next:
-1. Roll out on the first server: switch compose to `bock/caddy8d:2`, migrate its
-   Caddyfile per `examples/Caddyfile` (keys into env), boot it, make a local request.
-   If Mercure 1.0 can't open an old bolt DB, delete it (it only holds replay
-   history).
-2. Later: migrate the apps to Mercure 1.0 tokens/`match=` and drop
-   compatibility mode; report the AnyCable SSE bug upstream.
+1. Once the apps use Mercure 1.0 tokens/`match=`, drop compatibility mode
+   on the servers.
+2. Report the AnyCable SSE bug upstream.
 
 Decided: image names `bock/caddy8d` and `ghcr.io/bb/caddy8d`; repository
 license AGPL-3.0 (matches Mercure).
