@@ -64,21 +64,23 @@ JWT keys. Use `{env.*}` placeholders and test-only keys.
 
 ## Status and plan
 
-Done (2026-10-04): three variants build and pass smoke tests locally on
-arm64 (Docker Desktop); workflows pass actionlint; pushed to github.com/bb/caddy8d.
+Done (2026-10-04): github.com/bb/caddy8d publishes all variants for amd64
+and arm64 (first build: Caddy 2.11.7, tags `2.11.7-20261004-1328`).
+
+Repo setup done: Docker Hub secrets; branch protection on `main` requiring
+`build (<variant>, linux/amd64)` for all three variants (PRs build amd64
+only, so never require arm64 checks), admins not enforced, no reviews;
+repository auto-merge enabled (`gh pr merge --auto` needs it). When adding or
+renaming a variant, update the required checks too.
 
 Next:
-1. Repo setup: secrets `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` (optional
-   `DOCKERHUB_DESCRIPTION_TOKEN`); create Docker Hub repo `bock/caddy8d`;
-   branch protection on `main` requiring the `build` checks (auto-merge
-   relies on it); allow GitHub Actions to create/approve PRs; enable
-   Dependabot alerts/updates.
-2. First CI run: confirm amd64 smoke tests and published tags.
-3. Roll out on the first server: switch compose to `bock/caddy8d:2`, migrate its
+1. Run "Update Docker Hub Description" once by hand (it only triggers on
+   README changes).
+2. Roll out on the first server: switch compose to `bock/caddy8d:2`, migrate its
    Caddyfile per `examples/Caddyfile` (keys into env), boot it, make a local request.
    If Mercure 1.0 can't open an old bolt DB, delete it (it only holds replay
    history).
-4. Later: migrate the apps to Mercure 1.0 tokens/`match=` and drop
+3. Later: migrate the apps to Mercure 1.0 tokens/`match=` and drop
    compatibility mode; report the AnyCable SSE bug upstream.
 
 Decided: image names `bock/caddy8d` and `ghcr.io/bb/caddy8d`; repository
