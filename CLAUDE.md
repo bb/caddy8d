@@ -41,7 +41,11 @@ that compared a constant string once passed for the wrong reason.
   the smoke test validates it, so a release that breaks this config fails CI.
 - **anycable-go stays at v1.5.2**: caddy_anycable doesn't compile against
   v1.5.3+ (`config.Path` removed). Dependabot ignores it. caddy_anycable has
-  no tags (pseudo-version).
+  no tags (pseudo-version). Its embedded `nats-server` is raised by hand in
+  `variants/anycable/go.mod` (v2.10.21 had a critical CVE); check that
+  `embed_nats true` + `pubsub nats` still starts after bumping it, since the
+  smoke test doesn't cover it. golang-jwt v3 (CVE-2025-30204, no v3 fix) stays
+  until anycable-go moves on: the one known Trivy finding.
 - **AnyCable SSE returns 501 inside Caddy** (upstream: `w.(http.Flusher)`
   type assertion vs Caddy's wrapped writer). Tests use WebSockets only.
 - AnyCable's HTTP broadcaster binds `127.0.0.1:8090`, so the test broadcasts
