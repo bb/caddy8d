@@ -1,0 +1,17 @@
+# Drop-in replacement for a self-built (xcaddy) Caddy + Mercure service.
+services:
+  caddy:
+    image: bock/caddy8d:2   # or :2-souin / :2-anycable; pin e.g. :2.11.7-20261004-0312 to roll back
+    restart: unless-stopped
+    environment:
+      MERCURE_PUBLISHER_JWT_KEY: ${MERCURE_PUBLISHER_JWT_KEY:?}
+      MERCURE_SUBSCRIBER_JWT_KEY: ${MERCURE_SUBSCRIBER_JWT_KEY:?}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./mercure:/mercure
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

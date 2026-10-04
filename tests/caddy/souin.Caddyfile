@@ -1,0 +1,25 @@
+{
+	admin off
+	auto_https off
+	cache {
+		ttl 60s
+	}
+}
+
+import common.caddy
+
+:80 {
+	encode br gzip
+	import common "The quick brown fox jumps over the lazy dog, again and again."
+	respond / "hello from caddy8d"
+
+	# Cached proxy to the origin below: a cache hit returns the same timestamp
+	handle /cached {
+		cache
+		reverse_proxy 127.0.0.1:8081
+	}
+}
+
+:8081 {
+	respond "origin {http.request.uuid}"
+}

@@ -1,0 +1,235 @@
+name: Build Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'variants/**'
+      - 'tests/**'
+      - 'examples/Caddyfile'
+      - '.github/workflows/docker.yml'
+  # Every pull request builds and tests, without a paths filter: main
+  # requires these checks, and a PR that never reports them (e.g. one that
+  # only touches the README) could never be merged. Pushes to main keep the
+  # filter, so documentation changes don't republish images.
+  pull_request:
+  # Weekly rebuild picks up Alpine package fixes in the final stage
+  schedule:
+    - cron: "0 3 * * 0" # Every Sunday at 3 AM UTC
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DOCKERHUB_IMAGE: bock/caddy8d
+  GHCR_IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ${{ matrix.platform == 'linux/amd64' && 'ubuntu-latest' || 'ubuntu-24.04-arm' }}
+    strategy:
+      matrix:
+        # variants/<name>; the tag suffix is derived from it (base has none)
+        variant: [base, souin, anycable]
+        # Native runners per platform; PRs build amd64 only
+        platform: ${{ github.event_name == 'pull_request' && fromJSON('["linux/amd64"]') || fromJSON('["linux/amd64", "linux/arm64"]') }}
+      fail-fast: false
+    # Job-level permissions replace the workflow's, so repeat those and add
+    # security-events for uploading Trivy results to code scanning
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    env:
+      # Per-architecture tag the manifests are assembled from, e.g. souin-arm64
+      ARCH_TAG: ${{ matrix.variant }}-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+      CACHE_SCOPE: ${{ matrix.variant }}-${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # PR builds only pull public images and never push, so they skip the
+      # logins; secrets aren't available to PRs from forks anyway.
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: |
+            ${{ env.DOCKERHUB_IMAGE }}
+            ${{ env.GHCR_IMAGE }}
+          tags: |
+            type=raw,value=${{ env.ARCH_TAG }}
+          labels: |
+            org.opencontainers.image.title=caddy8d (${{ matrix.variant }})
+            org.opencontainers.image.description=Caddy with Mercure and Brotli${{ matrix.variant == 'souin' && ', plus Souin HTTP cache' || '' }}${{ matrix.variant == 'anycable' && ', plus AnyCable' || '' }}
+            org.opencontainers.image.licenses=Apache-2.0 AND AGPL-3.0-only AND MIT
+          flavor: |
+            latest=false
+
+      # Built into the local image store first, so nothing is pushed before
+      # the smoke test passed. The push step below reuses every layer.
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          platforms: ${{ matrix.platform }}
+          context: .
+          build-args: VARIANT=${{ matrix.variant }}
+          load: true
+          tags: caddy8d:test
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ env.CACHE_SCOPE }}
+          cache-to: type=gha,mode=max,scope=${{ env.CACHE_SCOPE }}
+
+      - name: Smoke test
+        run: tests/smoke.sh caddy8d:test "${{ matrix.variant }}"
+
+      # Report-only: lists HIGH/CRITICAL vulnerabilities in the job summary and
+      # never fails the build. Trivy runs from its official image pinned by
+      # digest rather than via aquasecurity/trivy-action, whose tags were
+      # hijacked in 2026 (CVE-2026-33634).
+      - name: Vulnerability scan (Trivy)
+        if: matrix.platform == 'linux/amd64'
+        continue-on-error: true
+        env:
+          IMAGE: caddy8d:test
+          TRIVY: aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
+        run: |
+          set -euo pipefail
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/out" "$TRIVY" \
+            image --quiet --scanners vuln --severity HIGH,CRITICAL --format json --output /out/trivy.json "$IMAGE"
+          docker run --rm -v "$PWD:/out" "$TRIVY" \
+            convert --quiet --format sarif --output /out/trivy.sarif /out/trivy.json
+          summary=$(jq -r '[.Results[]?.Vulnerabilities[]?] as $v
+            | "critical=\($v | map(select(.Severity == "CRITICAL")) | length)"
+            + " high=\($v | map(select(.Severity == "HIGH")) | length)"
+            + " fixable=\($v | map(select((.FixedVersion // "") != "")) | length)"' trivy.json)
+          echo "::notice title=Trivy (${{ matrix.variant }})::$summary"
+          {
+            echo "### Trivy: \`${{ matrix.variant }}\`"
+            echo "$summary"
+            echo
+            echo "| Severity | Vulnerability | Package | Installed | Fixed in |"
+            echo "|---|---|---|---|---|"
+            jq -r '[.Results[]?.Vulnerabilities[]?] | unique_by(.VulnerabilityID + .PkgName)
+              | sort_by(if .Severity == "CRITICAL" then 0 else 1 end, .PkgName)[]
+              | "| \(.Severity) | \(.VulnerabilityID) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion // "") |"' trivy.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Track the same findings in the repository's Security tab (code
+      # scanning), one category per variant. Report-only like the scan.
+      - name: Upload Trivy results to code scanning
+        if: matrix.platform == 'linux/amd64'
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: trivy.sarif
+          category: trivy-${{ matrix.variant }}
+
+      - name: Push
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          platforms: ${{ matrix.platform }}
+          context: .
+          build-args: VARIANT=${{ matrix.variant }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ env.CACHE_SCOPE }}
+          provenance: mode=max
+          sbom: true
+
+  create-manifests:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs: [build]
+    strategy:
+      matrix:
+        variant: [base, souin, anycable]
+    env:
+      # "" for base, "-souin" / "-anycable" otherwise
+      SUFFIX: ${{ matrix.variant != 'base' && format('-{0}', matrix.variant) || '' }}
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tags follow the Caddy version actually compiled in, e.g. for souin:
+      # souin, 2-souin, 2.11-souin, 2.11.7-souin (follow rebuilds) and
+      # 2.11.7-souin-20261004-0312 (one specific build, for pinning and
+      # rollback). base gets latest, 2, 2.11, 2.11.7, 2.11.7-20261004-0312.
+      - name: Create multi-arch manifests
+        run: |
+          set -euo pipefail
+          arch_tag="${{ matrix.variant }}"
+          img="$DOCKERHUB_IMAGE:$arch_tag-amd64"
+          v=$(docker run --rm "$img" caddy version | awk '{print $1}')
+          v=${v#v}
+          [[ "$v" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+$ ]] || { echo "::error::Unexpected Caddy version '$v'"; exit 1; }
+          major=${BASH_REMATCH[1]}; minor="$major.${BASH_REMATCH[2]}"
+          build_date=$(date -u +%Y%m%d-%H%M)
+          echo "::notice title=Tags (${{ matrix.variant }})::Caddy $v, build $build_date"
+          {
+            echo "### ${{ matrix.variant }}: Caddy $v (build $build_date)"
+            echo '```'
+            docker run --rm "$img" caddy list-modules --skip-standard --versions
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          for repo in "$DOCKERHUB_IMAGE" "$GHCR_IMAGE"; do
+            tags=(-t "$repo:$major$SUFFIX" -t "$repo:$minor$SUFFIX" -t "$repo:$v$SUFFIX" -t "$repo:$v$SUFFIX-$build_date"
+                  -t "$repo:${{ matrix.variant == 'base' && 'latest' || matrix.variant }}")
+            docker buildx imagetools create "${tags[@]}" "$repo:$arch_tag-amd64" "$repo:$arch_tag-arm64"
+            docker buildx imagetools inspect "$repo:$v$SUFFIX"
+          done
+
+  # GitHub disables scheduled workflows after 60 days without repository
+  # activity, which would silently stop the weekly rebuilds. Re-enabling the
+  # workflow through the API resets that timer.
+  keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Reset the inactivity timer
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/docker.yml/enable"

@@ -1,0 +1,42 @@
+# Weekly pull requests for:
+# - the Caddy plugins in variants/*/go.mod (Caddy, Mercure, cbrotli, Souin,
+#   caddy_anycable): this is how new upstream releases reach the images
+# - the digest-pinned base images in the Dockerfile (golang, caddy)
+# - the commit-pinned GitHub Actions
+#
+# Each pull request runs the build and smoke test for all variants;
+# dependabot-automerge.yml merges everything but major updates once green.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directories:
+      - /variants/base
+      - /variants/souin
+      - /variants/anycable
+    schedule:
+      interval: weekly
+    # One pull request per directory and week for minor/patch updates, so
+    # Caddy and Mercure releases that depend on each other land together
+    groups:
+      caddy-modules:
+        update-types: ["minor", "patch"]
+    ignore:
+      # caddy_anycable only compiles against the anycable-go version it
+      # requires itself (v1.5.3+ removed config.Path); let the plugin bump it
+      - dependency-name: github.com/anycable/anycable-go
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      base-images:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

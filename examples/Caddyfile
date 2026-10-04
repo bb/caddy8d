@@ -1,0 +1,61 @@
+# A production Caddyfile, migrated to Mercure 1.0 (keys from the
+# environment instead of the file). Two hubs, both in 0.x compatibility mode
+# until the app's clients and tokens are migrated; see README.md.
+{
+	admin 127.0.0.1:2020
+	http_port 81
+}
+
+foo.example.com:81 {
+	respond "foooo"
+}
+
+(mercure_compat) {
+	mercure {
+		# Mercure 1.0 allows one unnamed hub per configuration
+		name {args[0]}
+		# Accept 0.x clients (topic=, `mercure` claim tokens). Drop this line
+		# and move the keys into an `issuer` block once the app is migrated.
+		protocol_version_compatibility 8
+		publisher_jwt {env.MERCURE_PUBLISHER_JWT_KEY}
+		subscriber_jwt {env.MERCURE_SUBSCRIBER_JWT_KEY}
+		transport bolt {
+			path /mercure/{args[0]}-mercure.db
+		}
+	}
+}
+
+app.example.com:81 {
+	log {
+		# 0.x clients may send the token as ?authorization=, keep it out of logs
+		format filter {
+			request>uri query {
+				replace authorization REDACTED
+			}
+		}
+	}
+	import mercure_compat app
+	reverse_proxy 172.22.0.2 {
+		lb_try_duration 30s
+		transport http {
+			resolvers 127.0.0.11
+		}
+	}
+}
+
+app2.example.com:81, app2.example.com:8443 {
+	log {
+		format filter {
+			request>uri query {
+				replace authorization REDACTED
+			}
+		}
+	}
+	import mercure_compat app2
+	reverse_proxy 172.22.0.2 {
+		lb_try_duration 30s
+		transport http {
+			resolvers 127.0.0.11
+		}
+	}
+}

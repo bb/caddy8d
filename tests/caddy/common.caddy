@@ -1,0 +1,47 @@
+# Shared by all variants. Keys are test-only placeholders.
+(common) {
+	log
+
+	# Long enough that the encoder doesn't skip it (default minimum 512 bytes)
+	handle /big {
+		header Content-Type text/plain
+		respond "{args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]} {args[0]}"
+	}
+
+	# Mercure 1.0 (modern mode): keys in an issuer block, OAuth access tokens
+	route /.well-known/mercure* {
+		mercure {
+			issuer https://issuer.test {
+				publisher {
+					jwt test-publisher-key-not-a-secret-0123456789
+				}
+				subscriber {
+					jwt test-subscriber-key-not-a-secret-0123456789
+				}
+			}
+			resource_identifier https://hub.test/.well-known/mercure
+			anonymous
+			transport bolt {
+				path /data/mercure.db
+			}
+		}
+	}
+}
+
+# Mercure 0.x compatibility mode, as the production Caddyfiles need it until
+# their apps are migrated: top-level *_jwt keys, `mercure` claim, `topic=`
+:8082 {
+	log
+	route /.well-known/mercure* {
+		mercure {
+			name compat
+			protocol_version_compatibility 8
+			publisher_jwt test-publisher-key-not-a-secret-0123456789
+			subscriber_jwt test-subscriber-key-not-a-secret-0123456789
+			anonymous
+			transport bolt {
+				path /data/mercure-compat.db
+			}
+		}
+	}
+}

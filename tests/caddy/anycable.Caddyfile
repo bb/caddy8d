@@ -1,0 +1,23 @@
+{
+	admin off
+	auto_https off
+	order anycable before respond
+}
+
+import common.caddy
+
+:80 {
+	encode br gzip
+	import common "The quick brown fox jumps over the lazy dog, again and again."
+	respond / "hello from caddy8d"
+
+	# Public mode needs no Rails RPC backend: clients may subscribe to any
+	# stream. Broadcasts arrive over HTTP on 127.0.0.1:8090 (inside the
+	# container only). SSE (`sse true`) is left out: it fails with 501 inside
+	# Caddy, see README.md.
+	anycable {
+		public true
+		broadcast_adapter http
+		http_broadcast_port 8090
+	}
+}
