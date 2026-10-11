@@ -167,10 +167,10 @@ github.com/dunglas/go-urlpattern v1.0.0 h1:AmMwIDXWJFezeE1v38rxvQRGvvzTlityFuifL
 github.com/dunglas/go-urlpattern v1.0.0/go.mod h1:9qyjDljBPOWyWCGz7vo3Ek7cdnoG/DVk0Ucle7gWVS8=
 github.com/dunglas/httpsfv v1.1.2 h1:432E+FKy2DLMbVcZeAnOuM7nhyJ4vTiH7b9iXJ/Dkmc=
 github.com/dunglas/httpsfv v1.1.2/go.mod h1:zID2mqw9mFsnt7YC3vYQ9/cjq30q41W+1AnDwH8TiMg=
-github.com/dunglas/mercure v1.0.3 h1:pJuWX2Uo3HzJIBQ9JkOeKllZCub334Vb7EOY59KmTh0=
-github.com/dunglas/mercure v1.0.3/go.mod h1:lEqW81ni86pjsBwvjHd3K0WZaqabYLLKqbN+nTVaGkA=
-github.com/dunglas/mercure/caddy v1.0.3 h1:UmkOtF8rxW3Runyg8HKZyMuSNoAFi12QtOoi7o5BiIg=
-github.com/dunglas/mercure/caddy v1.0.3/go.mod h1:tPskJWRnctaqZ9wTuP5Y0reKEkpYD+GUccxxNJIG7Oc=
+github.com/dunglas/mercure v1.0.4 h1:BBUwqNYV81UZVkTK9+UxnYqcB5g57OkHIW9rP99PWcA=
+github.com/dunglas/mercure v1.0.4/go.mod h1:lEqW81ni86pjsBwvjHd3K0WZaqabYLLKqbN+nTVaGkA=
+github.com/dunglas/mercure/caddy v1.0.4 h1:4gW4zY05Dn/oUOQS4iOCFNdUeDxbUa2qPL/zPNdKkTE=
+github.com/dunglas/mercure/caddy v1.0.4/go.mod h1:cvCshekNRQU+sU984i70B/9AJftTjAxjj48+djjS79k=
 github.com/dunglas/skipfilter v1.2.0 h1:J7/RXRxEx3t+DEu2Zt8ISsRuptbUFOWHEIzWIjraqRM=
 github.com/dunglas/skipfilter v1.2.0/go.mod h1:ZVvGnWsdN5Hdwt27Wbi98ixUeFF3yLZ/WsFtcWQBN3s=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
