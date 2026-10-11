@@ -6,7 +6,7 @@ require (
 	github.com/caddyserver/caddy/v2 v2.11.7
 	github.com/darkweak/souin/plugins/caddy v1.7.9
 	github.com/dunglas/caddy-cbrotli v1.0.1
-	github.com/dunglas/mercure/caddy v1.0.3
+	github.com/dunglas/mercure/caddy v1.0.4
 )
 
 require (
@@ -53,7 +53,7 @@ require (
 	github.com/dlclark/regexp2/v2 v2.8.2 // indirect
 	github.com/dunglas/go-urlpattern v1.0.0 // indirect
 	github.com/dunglas/httpsfv v1.1.2 // indirect
-	github.com/dunglas/mercure v1.0.3 // indirect
+	github.com/dunglas/mercure v1.0.4 // indirect
 	github.com/dunglas/skipfilter v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/elnormous/contenttype v1.0.4 // indirect
