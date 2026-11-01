@@ -10,7 +10,7 @@
 #
 # Base images are pinned by digest and bumped by Dependabot.
 
-FROM golang:1.27.2-alpine3.24@sha256:f92b6ef800e499660581efdabdf25d9d817a9d124eaf900924f0504e7e27e12d AS builder
+FROM golang:1.27.3-alpine3.24@sha256:d200d2dd76b03a99b52651fd1325aff7dcd35422c35c01bac56571b0507f3deb AS builder
 
 # cbrotli links against the C brotli library, so the build needs cgo
 RUN apk add --no-cache gcc musl-dev brotli-dev git libcap-setcap
