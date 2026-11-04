@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Build and smoke-test variants locally, the same way CI does before pushing.
 #
-# Usage: ./build.sh [variant...]    (default: base souin anycable)
+# Usage: ./build.sh [variant...]    (default: base souin anycable l4 souin-l4 anycable-l4)
 # Images are tagged caddy8d:<variant>.
 set -euo pipefail
 cd "$(dirname "$0")"
-variants=("${@:-base souin anycable}")
+variants=("${@:-base souin anycable l4 souin-l4 anycable-l4}")
 # shellcheck disable=SC2206 # split the default list
 variants=(${variants[*]})
 fail=0

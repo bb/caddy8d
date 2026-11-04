@@ -1,6 +1,7 @@
 # Weekly pull requests for:
 # - the Caddy plugins in variants/*/go.mod (Caddy, Mercure, cbrotli, Souin,
-#   caddy_anycable): this is how new upstream releases reach the images
+#   caddy_anycable, caddy-l4): this is how new upstream releases reach the
+#   images
 # - the digest-pinned base images in the Dockerfile (golang, caddy)
 # - the commit-pinned GitHub Actions
 #
@@ -13,6 +14,9 @@ updates:
       - /variants/base
       - /variants/souin
       - /variants/anycable
+      - /variants/l4
+      - /variants/souin-l4
+      - /variants/anycable-l4
     schedule:
       interval: weekly
     # One pull request per directory and week for minor/patch updates, so

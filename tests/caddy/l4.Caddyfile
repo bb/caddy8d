@@ -1,0 +1,15 @@
+# Generated from base.Caddyfile plus the layer4 parts (l4-global.caddy, l4-site.caddy).
+{
+	admin off
+	auto_https disable_redirects
+	import l4-global.caddy
+}
+
+import common.caddy
+import l4-site.caddy
+
+:80 {
+	encode br gzip
+	import common "The quick brown fox jumps over the lazy dog, again and again."
+	respond / "hello from caddy8d"
+}

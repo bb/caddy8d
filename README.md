@@ -3,8 +3,10 @@
 [Caddy](https://caddyserver.com) with [Mercure](https://mercure.rocks) and
 [Brotli](https://github.com/dunglas/caddy-cbrotli) compression, plus variants
 with the [Souin](https://github.com/darkweak/souin) HTTP cache or
-[AnyCable](https://github.com/evilmartians/caddy_anycable). A drop-in
-replacement for the official `caddy` image: same paths, same default command.
+[AnyCable](https://github.com/evilmartians/caddy_anycable). Each of these is
+also available with [layer4](https://github.com/mholt/caddy-l4) (TCP/TLS
+routing). A drop-in replacement for the official `caddy` image: same paths,
+same default command.
 
 New Caddy, Mercure and plugin releases are picked up automatically. Each one
 is built and smoke-tested before it is published.
@@ -19,6 +21,9 @@ Published to Docker Hub (`bock/caddy8d`) and GHCR (`ghcr.io/bb/caddy8d`) for
 | `base`     | Caddy, Mercure, cbrotli           | `latest`, `2`, `2.11`, `2.11.7`   | `2.11.7-20261004-0312`                   |
 | `souin`    | base + Souin HTTP cache           | `souin`, `2-souin`, `2.11-souin`, `2.11.7-souin` | `2.11.7-souin-20261004-0312` |
 | `anycable` | base + AnyCable (WebSocket)       | `anycable`, `2-anycable`, `2.11-anycable`, `2.11.7-anycable` | `2.11.7-anycable-20261004-0312` |
+| `l4`       | base + layer4                     | `l4`, `2-l4`, `2.11-l4`, `2.11.7-l4` | `2.11.7-l4-<build date>` |
+| `souin-l4` | souin + layer4                    | `souin-l4`, `2-souin-l4`, `2.11-souin-l4`, `2.11.7-souin-l4` | `2.11.7-souin-l4-<build date>` |
+| `anycable-l4` | anycable + layer4              | `anycable-l4`, `2-anycable-l4`, `2.11-anycable-l4`, `2.11.7-anycable-l4` | `2.11.7-anycable-l4-<build date>` |
 
 The version in the tag is the Caddy version compiled in. The floating tags
 follow rebuilds: new plugin releases and weekly Alpine updates. A dated tag
@@ -46,6 +51,43 @@ volumes:
 ```
 
 See [examples/](examples/) for a complete Caddyfile with two Mercure hubs.
+
+## Layer 4 (TCP/TLS routing)
+
+The `*-l4` variants add the [layer4 app](https://github.com/mholt/caddy-l4).
+Its most useful mode next to websites is a listener wrapper: the HTTPS
+server keeps port 443, and connections for selected TLS names are taken off
+before HTTP sees them, terminated with the certificate Caddy already manages
+for that name, and proxied as plain TCP. That puts, for example, a TURN
+server (`turns:` over TLS) on 443 next to the websites, for clients on
+networks that only allow port 443:
+
+```caddyfile
+{
+	servers :443 {
+		listener_wrappers {
+			layer4 {
+				@turn tls sni turn.example.com
+				route @turn {
+					tls
+					proxy tcp/turn-backend:3478
+				}
+			}
+			tls
+		}
+	}
+}
+
+# Makes Caddy obtain and renew the certificate for the diverted name
+turn.example.com {
+	respond 404
+}
+```
+
+Every other connection falls through to the `tls` wrapper and is served as
+usual; HTTP/3 (UDP 443) is not affected. The smoke test checks both paths on
+one port. Upstream marks the layer4 app as experimental: its configuration
+may change between releases.
 
 ## Upgrading from Mercure 0.x
 
@@ -91,7 +133,7 @@ and subscribe URLs and then remove `protocol_version_compatibility`.
 ## Building locally
 
 ```sh
-./build.sh                # build and smoke-test all variants
+./build.sh                # build and smoke-test all six variants
 ./build.sh souin          # just one
 tests/smoke.sh caddy8d:base base
 ```
@@ -103,6 +145,6 @@ plugins, `go.mod` pins their versions). To add a plugin, add its import to
 ## Licenses
 
 This repository is licensed under the [AGPL-3.0](LICENSE). The images bundle
-Caddy (Apache-2.0), Mercure (AGPL-3.0), and cbrotli, Souin and caddy_anycable
-(MIT), all unmodified. This repository (the `go.mod`/`go.sum` files pin exact
+Caddy and caddy-l4 (Apache-2.0), Mercure (AGPL-3.0), and cbrotli, Souin and
+caddy_anycable (MIT), all unmodified. This repository (the `go.mod`/`go.sum` files pin exact
 versions) is the corresponding source.

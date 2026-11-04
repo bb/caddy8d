@@ -2,7 +2,9 @@
 
 Custom Caddy image for several servers, replacing an older self-built xcaddy
 image. Base variant: Caddy + Mercure + caddy-cbrotli. Extra variants: `souin`,
-`anycable`. Images are rebuilt automatically on every upstream stable release.
+`anycable`, and a `-l4` twin of each (`l4`, `souin-l4`, `anycable-l4`) that
+adds mholt/caddy-l4. Images are rebuilt automatically on every upstream
+stable release.
 User-facing docs, tags and limitations live in README.md; it is also the
 Docker Hub description.
 Sibling project with the same CI approach: github.com/bb/frankenpress.
@@ -22,9 +24,10 @@ Sibling project with the same CI approach: github.com/bb/frankenpress.
 
 ## Verification bar
 
-A change is done when `./build.sh` (all three variants) ends with
+A change is done when `./build.sh` (all six variants) ends with
 `ALL CHECKS PASSED` for each. Smoke tests exercise each plugin for real
-(publish/subscribe, cache hit, WebSocket broadcast), not just module presence.
+(publish/subscribe, cache hit, WebSocket broadcast, layer4 SNI split on a
+TLS port), not just module presence.
 When adding a check, run a negative control once to watch it go red; a check
 that compared a constant string once passed for the wrong reason.
 
@@ -51,6 +54,17 @@ that compared a constant string once passed for the wrong reason.
   type assertion vs Caddy's wrapped writer). Tests use WebSockets only.
 - AnyCable's HTTP broadcaster binds `127.0.0.1:8090`, so the test broadcasts
   via `docker exec` + busybox `wget`.
+- **`-l4` variants are full copies** of their parent's Go module plus
+  `github.com/mholt/caddy-l4`; `smoke.sh` strips the suffix to pick the
+  parent's checks. A hand-made pin in a parent's `go.mod` (e.g. anycable's
+  `nats-server`) must be made in its `-l4` twin too. Test configs
+  `tests/caddy/*-l4.Caddyfile` are the parent's plus `import
+  l4-global.caddy` (inside the global block) and `import l4-site.caddy`.
+- **layer4 listener wrapper**: a lone `tls` in `listener_wrappers` is a
+  config error ("unnecessary … first position"), so a negative control must
+  drop the whole `servers` block, not just the `layer4` part. The test
+  trusts Caddy's internal root from `/data/caddy/pki/authorities/local/`
+  instead of skipping verification.
 - `setcap` runs in the builder stage: doing it in the final stage duplicates
   the ~57MB binary in a new layer. The final stage asserts it with `getcap`.
 - The official caddy image lags Caddy releases; that's expected (binary is
@@ -73,7 +87,7 @@ Done (2026-10-04): github.com/bb/caddy8d publishes all variants for amd64
 and arm64 (first build: Caddy 2.11.7, tags `2.11.7-20261004-1328`).
 
 Repo setup done: Docker Hub secrets and description; branch protection on `main` requiring
-`build (<variant>, linux/amd64)` for all three variants (PRs build amd64
+`build (<variant>, linux/amd64)` for all variants (PRs build amd64
 only, so never require arm64 checks), admins not enforced, no reviews;
 repository auto-merge enabled (`gh pr merge --auto` needs it). When adding or
 renaming a variant, update the required checks too.

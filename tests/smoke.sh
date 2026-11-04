@@ -1,15 +1,23 @@
 #!/usr/bin/env bash
 # Smoke test for a built caddy8d image.
 #
-# Usage: tests/smoke.sh <image> <base|souin|anycable>
+# Usage: tests/smoke.sh <image> <base|souin|anycable|l4|souin-l4|anycable-l4>
 #
 # Starts the image with tests/caddy/<variant>.Caddyfile and checks that every
 # bundled plugin works, not only that it is compiled in: Brotli encoding,
 # Mercure publish/subscribe in 1.0 mode and in 0.x compatibility mode (bolt
 # transport), plus the Souin cache or AnyCable, depending on the variant.
-# Needs Docker, curl and openssl; exits non-zero if any check fails.
+# The *-l4 variants additionally route one TLS name through a layer4
+# listener wrapper on the HTTPS port while other names stay normal HTTPS.
+# Needs Docker, curl, openssl and python3; exits non-zero if any check fails.
 set -u
 IMG=$1; VARIANT=$2; C=caddy8d-test-$$; NR=caddy8d-nonroot-$$; PORT=${PORT:-18080}
+# Plugin set without the layer4 suffix: l4 -> base, souin-l4 -> souin
+case $VARIANT in
+  l4) BASE_VARIANT=base; L4=yes ;;
+  *-l4) BASE_VARIANT=${VARIANT%-l4}; L4=yes ;;
+  *) BASE_VARIANT=$VARIANT; L4=no ;;
+esac
 DIR=$(cd "$(dirname "$0")" && pwd); TMP=$(mktemp -d)
 fail=0
 check() { # check <description> <expected> <actual>
@@ -33,8 +41,10 @@ has() { grep -qx "$1" <<<"$modules" && echo yes || echo no; }
 check "caddy version" yes "$(docker run --rm "$IMG" caddy version | grep -qE '^v2\.[0-9]+\.[0-9]+ ' && echo yes || echo no)"
 check "module http.handlers.mercure" yes "$(has http.handlers.mercure)"
 check "module http.encoders.br" yes "$(has http.encoders.br)"
-check "module http.handlers.cache (souin only)" "$([ "$VARIANT" = souin ] && echo yes || echo no)" "$(has http.handlers.cache)"
-check "module http.handlers.anycable (anycable only)" "$([ "$VARIANT" = anycable ] && echo yes || echo no)" "$(has http.handlers.anycable)"
+check "module http.handlers.cache (souin only)" "$([ "$BASE_VARIANT" = souin ] && echo yes || echo no)" "$(has http.handlers.cache)"
+check "module http.handlers.anycable (anycable only)" "$([ "$BASE_VARIANT" = anycable ] && echo yes || echo no)" "$(has http.handlers.anycable)"
+check "module layer4 (l4 only)" "$L4" "$(has layer4)"
+check "module caddy.listeners.layer4 (l4 only)" "$L4" "$(has caddy.listeners.layer4)"
 check "binary has cap_net_bind_service" yes "$(docker run --rm "$IMG" getcap /usr/bin/caddy | grep -q cap_net_bind_service && echo yes || echo no)"
 
 # The production-style config (two named hubs in 0.x compatibility mode) must
@@ -49,7 +59,7 @@ check "non-root caddy binds port 80" nonroot "$(curl -s "http://localhost:$((POR
 docker rm -f $NR >/dev/null
 
 # --- runtime
-docker run -d --name $C -p $PORT:80 -p $((PORT + 2)):8082 -v "$DIR/caddy:/etc/caddy:ro" "$IMG" \
+docker run -d --name $C -p $PORT:80 -p $((PORT + 2)):8082 -p $((PORT + 3)):8443 -v "$DIR/caddy:/etc/caddy:ro" "$IMG" \
   caddy run --config "/etc/caddy/$VARIANT.Caddyfile" >/dev/null
 B=http://localhost:$PORT; CB=http://localhost:$((PORT + 2))
 for _ in $(seq 1 30); do curl -s -o /dev/null $B/ && break; sleep 0.5; done
@@ -85,13 +95,13 @@ sleep 1
 check "mercure compat: topic= subscriber receives update" yes "$(grep -q '^data: hello-compat$' "$TMP/compat.sse" && echo yes || echo no)"
 check "mercure bolt databases written" yes "$(docker exec $C sh -c 'test -s /data/mercure.db && test -s /data/mercure-compat.db' && echo yes || echo no)"
 
-if [ "$VARIANT" = souin ]; then
+if [ "$BASE_VARIANT" = souin ]; then
   first=$(curl -s $B/cached); second=$(curl -s -D "$TMP/h" $B/cached)
   check "souin: second request served from cache" "$first" "$second"
   check "souin: Cache-Status reports a hit" yes "$(grep -i '^cache-status:' "$TMP/h" | grep -qi 'hit' && echo yes || echo no)"
 fi
 
-if [ "$VARIANT" = anycable ]; then
+if [ "$BASE_VARIANT" = anycable ]; then
   check "anycable: websocket upgrade on /cable" 101 "$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 --http1.1 \
     -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' \
     -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' -H 'Sec-WebSocket-Protocol: actioncable-v1-json' $B/cable)"
@@ -150,6 +160,35 @@ except Exception as e:
 PY
 )
   check "anycable: websocket subscriber receives broadcast" hello-cable "$cable"
+fi
+
+if [ "$L4" = yes ]; then
+  # Same TLS port, two names: web.test must reach the HTTP app, turn.test
+  # must be taken by the layer4 wrapper, terminated, and proxied as plain
+  # TCP to the echo server. Both are verified against Caddy's internal root,
+  # so the turn.test check also proves the wrapper presents the certificate
+  # the HTTP app manages for that name. Certificates are issued shortly
+  # after startup.
+  for _ in $(seq 1 20); do
+    docker exec $C cat /data/caddy/pki/authorities/local/root.crt > "$TMP/root.crt" 2>/dev/null \
+      && curl -s --cacert "$TMP/root.crt" --resolve web.test:$((PORT + 3)):127.0.0.1 -o /dev/null "https://web.test:$((PORT + 3))/" && break
+    sleep 0.5
+  done
+  check "l4: other TLS names still served by HTTP app" "hello over https" \
+    "$(curl -s --cacert "$TMP/root.crt" --resolve web.test:$((PORT + 3)):127.0.0.1 "https://web.test:$((PORT + 3))/")"
+  l4echo=$(python3 - "$((PORT + 3))" "$TMP/root.crt" <<'PY'
+import socket, ssl, sys
+ctx = ssl.create_default_context(cafile=sys.argv[2])
+try:
+    with socket.create_connection(("127.0.0.1", int(sys.argv[1])), timeout=5) as raw:
+        with ctx.wrap_socket(raw, server_hostname="turn.test") as s:
+            s.sendall(b"ping-l4")
+            print(s.recv(64).decode())
+except Exception as e:
+    print(f"error: {e!r}")
+PY
+)
+  check "l4: SNI turn.test terminated and proxied to TCP" ping-l4 "$l4echo"
 fi
 
 errs=$(docker logs $C 2>&1 | grep '"level":"error"' | head -3)
