@@ -50,6 +50,13 @@ that compared a constant string once passed for the wrong reason.
   `embed_nats true` + `pubsub nats` still starts after bumping it, since the
   smoke test doesn't cover it. golang-jwt v3 (CVE-2025-30204, no v3 fix) stays
   until anycable-go moves on: the one known Trivy finding.
+- **anycable variants held at Caddy 2.11.7 / Mercure 1.1.5** (2026-11-04):
+  on 2.11.8 `encode` in front of the `anycable` handler turns the WebSocket
+  upgrade into a 500 (smoke test catches it; without `encode` it is 101).
+  `reverse_proxy` WebSockets behind `encode` still give 101 on 2.11.8:
+  test that with a readiness wait for the backend, or the proxy answers
+  500 too and the test lies. dependabot.yml skips exactly those versions
+  for the anycable directories; drop the ignore once a release passes.
 - **AnyCable SSE returns 501 inside Caddy** (upstream: `w.(http.Flusher)`
   type assertion vs Caddy's wrapped writer). Tests use WebSockets only.
 - AnyCable's HTTP broadcaster binds `127.0.0.1:8090`, so the test broadcasts
