@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix:
         # variants/<name>; the tag suffix is derived from it (base has none)
-        variant: [base, souin, anycable]
+        variant: [base, souin, anycable, l4, souin-l4, anycable-l4]
         # Native runners per platform; PRs build amd64 only
         platform: ${{ github.event_name == 'pull_request' && fromJSON('["linux/amd64"]') || fromJSON('["linux/amd64", "linux/arm64"]') }}
       fail-fast: false
@@ -70,7 +70,7 @@ jobs:
             type=raw,value=${{ env.ARCH_TAG }}
           labels: |
             org.opencontainers.image.title=caddy8d (${{ matrix.variant }})
-            org.opencontainers.image.description=Caddy with Mercure and Brotli${{ matrix.variant == 'souin' && ', plus Souin HTTP cache' || '' }}${{ matrix.variant == 'anycable' && ', plus AnyCable' || '' }}
+            org.opencontainers.image.description=Caddy with Mercure and Brotli${{ startsWith(matrix.variant, 'souin') && ', plus Souin HTTP cache' || '' }}${{ startsWith(matrix.variant, 'anycable') && ', plus AnyCable' || '' }}${{ endsWith(matrix.variant, 'l4') && ', plus layer4 (TCP/TLS routing)' || '' }}
             org.opencontainers.image.licenses=Apache-2.0 AND AGPL-3.0-only AND MIT
           flavor: |
             latest=false
@@ -172,9 +172,9 @@ jobs:
     needs: [build]
     strategy:
       matrix:
-        variant: [base, souin, anycable]
+        variant: [base, souin, anycable, l4, souin-l4, anycable-l4]
     env:
-      # "" for base, "-souin" / "-anycable" otherwise
+      # "" for base, "-souin" / "-anycable" / "-l4" / "-souin-l4" / … otherwise
       SUFFIX: ${{ matrix.variant != 'base' && format('-{0}', matrix.variant) || '' }}
     steps:
       - name: Set up Docker Buildx

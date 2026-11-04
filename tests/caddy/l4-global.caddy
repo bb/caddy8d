@@ -1,0 +1,27 @@
+# Global options for the *-l4 variants, imported inside the global block.
+# Mirrors the intended production use: the HTTPS server keeps its port, and
+# a layer4 listener wrapper diverts TLS connections for one name (here
+# turn.test) before HTTP sees them. Those are terminated with the
+# certificate the HTTP app manages for that name and proxied as plain TCP
+# to a backend: the echo server below stands in for e.g. a TURN server.
+# Every other connection falls through to the tls wrapper and normal HTTPS.
+skip_install_trust
+servers :8443 {
+	listener_wrappers {
+		layer4 {
+			@turn tls sni turn.test
+			route @turn {
+				tls
+				proxy tcp/127.0.0.1:9001
+			}
+		}
+		tls
+	}
+}
+layer4 {
+	127.0.0.1:9001 {
+		route {
+			echo
+		}
+	}
+}

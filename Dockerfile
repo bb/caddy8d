@@ -4,6 +4,9 @@
 #   docker build --build-arg VARIANT=souin .     # base + Souin (HTTP cache)
 #   docker build --build-arg VARIANT=anycable .  # base + AnyCable
 #
+# Each also exists with the layer4 app (TCP/TLS routing, mholt/caddy-l4):
+# VARIANT=l4, souin-l4, anycable-l4.
+#
 # Plugin versions come from variants/<VARIANT>/go.mod (bumped by Dependabot),
 # not from xcaddy: xcaddy pins Caddy to the builder image's version, which
 # breaks as soon as a plugin requires a newer Caddy than the image ships.
@@ -42,6 +45,7 @@ COPY --from=builder /usr/bin/caddy /usr/bin/caddy
 RUN getcap /usr/bin/caddy | grep -q cap_net_bind_service \
     && caddy version \
     && caddy list-modules --skip-standard | grep -qx http.handlers.mercure \
-    && caddy list-modules --skip-standard | grep -qx http.encoders.br
+    && caddy list-modules --skip-standard | grep -qx http.encoders.br \
+    && case "$VARIANT" in l4|*-l4) caddy list-modules --skip-standard | grep -qx caddy.listeners.layer4 ;; esac
 
 LABEL org.opencontainers.image.variant=${VARIANT}

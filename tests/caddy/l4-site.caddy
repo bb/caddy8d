@@ -1,0 +1,7 @@
+# HTTPS site for the *-l4 variants. turn.test is listed so the HTTP app
+# obtains its certificate; its connections never reach this site because
+# the listener wrapper takes them first.
+https://web.test:8443, https://turn.test:8443 {
+	tls internal
+	respond "hello over https"
+}
