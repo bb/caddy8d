@@ -3,7 +3,7 @@ module github.com/bb/caddy8d/variants/l4
 go 1.27.3
 
 require (
-	github.com/caddyserver/caddy/v2 v2.11.8
+	github.com/caddyserver/caddy/v2 v2.11.9
 	github.com/dunglas/caddy-cbrotli v1.0.1
 	github.com/dunglas/mercure/caddy v1.1.6
 	github.com/mholt/caddy-l4 v0.1.2
