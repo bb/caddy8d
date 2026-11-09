@@ -37,11 +37,11 @@ updates:
       # caddy_anycable only compiles against the anycable-go version it
       # requires itself (v1.5.3+ removed config.Path); let the plugin bump it
       - dependency-name: github.com/anycable/anycable-go
-      # Caddy 2.11.8 breaks the anycable WebSocket upgrade behind `encode`
-      # (500); Mercure 1.1.6 requires that Caddy. Only these versions are
-      # skipped, so the next release is tried (and tested) again.
+      # Caddy 2.11.8 and 2.11.9 break the anycable WebSocket upgrade behind
+      # `encode` (500); Mercure 1.1.6 requires Caddy >= 2.11.8. Only these
+      # versions are skipped, so the next release is tried (and tested) again.
       - dependency-name: github.com/caddyserver/caddy/v2
-        versions: ["2.11.8"]
+        versions: ["2.11.8", "2.11.9"]
       - dependency-name: github.com/dunglas/mercure/caddy
         versions: ["1.1.6"]
       - dependency-name: github.com/dunglas/mercure
