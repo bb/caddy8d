@@ -124,11 +124,11 @@ and subscribe URLs and then remove `protocol_version_compatibility`.
 - The anycable-go version is fixed by caddy_anycable (v1.5.2). Newer
   anycable-go releases changed the API the plugin uses.
 - **The `anycable` variants stay on Caddy 2.11.7** (and Mercure 1.1.5, since
-  Mercure 1.1.6 requires Caddy 2.11.8). On Caddy 2.11.8 the AnyCable
-  WebSocket upgrade answers `500` when `encode` runs in front of it; without
-  `encode` it works. `reverse_proxy` WebSockets behind `encode` are not
-  affected, so the other variants use 2.11.8. The next Caddy release is
-  tried again automatically.
+  Mercure 1.1.6 requires Caddy 2.11.8). On Caddy 2.11.8 and 2.11.9 the
+  AnyCable WebSocket upgrade answers `500` when `encode` runs in front of it;
+  without `encode` it works. `reverse_proxy` WebSockets behind `encode` are
+  not affected, so the other variants use the latest Caddy. The next Caddy
+  release is tried again automatically.
 - Souin logs a warning that its default in-memory storage is meant for
   development. It works; for a shared or persistent cache, a storage module
   from [darkweak/storages](https://github.com/darkweak/storages) would need to

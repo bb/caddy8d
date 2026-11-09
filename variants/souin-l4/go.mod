@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/caddyserver/caddy/v2 v2.11.9
-	github.com/darkweak/souin/plugins/caddy v1.7.9
+	github.com/darkweak/souin/plugins/caddy v1.7.10
 	github.com/dunglas/caddy-cbrotli v1.0.1
 	github.com/dunglas/mercure/caddy v1.1.6
 	github.com/mholt/caddy-l4 v0.1.2
@@ -45,8 +45,8 @@ require (
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/coreos/go-oidc/v3 v3.21.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
-	github.com/darkweak/souin v1.7.9 // indirect
-	github.com/darkweak/storages/core v0.0.20 // indirect
+	github.com/darkweak/souin v1.7.10 // indirect
+	github.com/darkweak/storages/core v0.0.22 // indirect
 	github.com/dgraph-io/badger v1.6.2 // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.4 // indirect
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
@@ -70,7 +70,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
-	github.com/google/brotli/go/cbrotli v1.1.0 // indirect
+	github.com/google/brotli/go/cbrotli v1.2.1 // indirect
 	github.com/google/certificate-transparency-go v1.4.0 // indirect
 	github.com/google/go-tpm v0.9.8 // indirect
 	github.com/google/go-tspi v0.3.0 // indirect
