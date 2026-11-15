@@ -6,7 +6,7 @@ require (
 	github.com/caddyserver/caddy/v2 v2.11.9
 	github.com/dunglas/caddy-cbrotli v1.0.1
 	github.com/dunglas/mercure/caddy v1.1.6
-	github.com/mholt/caddy-l4 v0.1.2
+	github.com/mholt/caddy-l4 v0.1.3
 )
 
 require (
@@ -130,9 +130,10 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55 // indirect
 	github.com/tailscale/tscert v0.0.0-20251216020129-aea342f6d747 // indirect
-	github.com/things-go/go-socks5 v0.1.1 // indirect
+	github.com/things-go/go-socks5 v0.1.4 // indirect
 	github.com/unrolled/secure v1.17.0 // indirect
 	github.com/urfave/cli v1.22.17 // indirect
+	github.com/vnxme/hybrid v0.1.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/yuin/goldmark v1.8.7 // indirect
