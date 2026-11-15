@@ -7,7 +7,7 @@ require (
 	github.com/dunglas/caddy-cbrotli v1.0.1
 	github.com/dunglas/mercure/caddy v1.1.5
 	github.com/evilmartians/caddy_anycable v0.0.0-20260622222418-3210671cc381
-	github.com/mholt/caddy-l4 v0.1.2
+	github.com/mholt/caddy-l4 v0.1.3
 )
 
 require (
@@ -154,10 +154,11 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tailscale/go-winio v0.0.0-20231025203758-c4f33415bf55 // indirect
 	github.com/tailscale/tscert v0.0.0-20251216020129-aea342f6d747 // indirect
-	github.com/things-go/go-socks5 v0.1.1 // indirect
+	github.com/things-go/go-socks5 v0.1.4 // indirect
 	github.com/unrolled/secure v1.17.0 // indirect
 	github.com/urfave/cli v1.22.17 // indirect
 	github.com/urfave/cli/v2 v2.27.4 // indirect
+	github.com/vnxme/hybrid v0.1.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
@@ -202,7 +203,7 @@ require (
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/crypto/x509roots/fallback v0.0.0-20261020153306-9f2b28d4331a // indirect
 	golang.org/x/exp v0.0.0-20261014143641-f0251eb4aa3e // indirect
-	golang.org/x/net v0.61.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
