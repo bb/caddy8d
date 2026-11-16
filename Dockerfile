@@ -13,7 +13,7 @@
 #
 # Base images are pinned by digest and bumped by Dependabot.
 
-FROM golang:1.27.4-alpine3.24@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS builder
+FROM golang:1.27.4-alpine3.24@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS builder
 
 # cbrotli links against the C brotli library, so the build needs cgo
 RUN apk add --no-cache gcc musl-dev brotli-dev git libcap-setcap
@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
 # The official image provides the layout (/etc/caddy, /data, /config, default
 # Caddyfile, XDG env, CMD); only the binary is replaced. Its tag can lag behind
 # the Caddy version in go.mod: `caddy version` is what counts.
-FROM caddy:2.11.9-alpine@sha256:0bbb055bda6793c999bde78b1b5ce3e89f829fb031af2cf50056ea1246559fee
+FROM caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
 
 ARG VARIANT=base
 RUN apk add --no-cache brotli-libs
